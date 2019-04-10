@@ -2,6 +2,7 @@ import React from 'react';
 import { render, fireEvent } from 'react-testing-library';
 import renderer from 'react-test-renderer';
 import 'react-testing-library/cleanup-after-each';
+import 'jest-dom/extend-expect';
 
 import Controls from './Controls';
 import Dashboard from '../dashboard/Dashboard';
@@ -13,21 +14,48 @@ describe('<Controls />', () => {
 		getByText(/close gate/i);
 	});
 
-	it('changes text when clicked', () => {
-		const { getByText } = render(<Dashboard />);
+	it('changes "close gate" to "open gate" when clicked', () => {
+		let props = {
+			closed: false,
+		};
+
+		const closeMock = jest.fn(() => {
+			props.closed = !props.closed;
+		});
+
+		const { getByText, rerender } = render(
+			<Controls {...props} toggleClosed={closeMock} />,
+		);
 
 		const closeBtn = getByText(/close gate/i);
+		fireEvent.click(closeBtn);
+		rerender(<Controls {...props} />);
+		expect(closeBtn.innerHTML).toBe('Open Gate');
+	});
+
+	it('changes "lock gate" to "unlock gate" when clicked', () => {
+		let props = {
+			closed: true,
+			locked: false,
+		};
+
+		const lockMock = jest.fn(() => {
+			props.locked = !props.locked;
+		});
+
+		const { getByText, rerender } = render(
+			<Controls {...props} toggleLocked={lockMock} />,
+		);
+
 		const lockBtn = getByText(/lock gate/i);
 
-		fireEvent.click(closeBtn);
 		fireEvent.click(lockBtn);
-
-		getByText(/open gate/i);
-		getByText(/unlock gate/i);
+		rerender(<Controls {...props} />);
+		expect(lockBtn.innerHTML).toBe('Unlock Gate');
 	});
 
 	it('lock button disabled if gate open', () => {
-		const { getByText } = render(<Dashboard />);
+		const { getByText } = render(<Controls />);
 
 		const lockBtn = getByText(/lock gate/i);
 
@@ -35,13 +63,15 @@ describe('<Controls />', () => {
 	});
 
 	it('open button disabled if locked', () => {
-		const { getByText } = render(<Dashboard />);
+		let props = {
+			closed: true,
+			locked: true,
+		};
 
-		const closeBtn = getByText(/close gate/i);
-		const lockBtn = getByText(/lock gate/i);
+		const { getByText } = render(<Controls {...props} />);
 
-		fireEvent.click(closeBtn);
-		fireEvent.click(lockBtn);
+		const closeBtn = getByText(/open gate/i);
+		const lockBtn = getByText(/unlock gate/i);
 
 		expect(closeBtn.disabled).toBeTruthy();
 	});
